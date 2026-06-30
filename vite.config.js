@@ -5,6 +5,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
+  server: {
+    allowedHosts: 'all',
+  },
+
   build: {
     chunkSizeWarningLimit: 1000,
     sourcemap: false,
