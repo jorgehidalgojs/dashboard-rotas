@@ -144,7 +144,7 @@ echo export default defineConfig^({
 echo   plugins: [react^(^), tailwindcss^(^)],
 echo.
 echo   server: {
-echo     allowedHosts: 'all',
+echo     allowedHosts: true,
 echo   },
 echo.
 echo   build: {
