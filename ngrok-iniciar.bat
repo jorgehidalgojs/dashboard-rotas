@@ -1,7 +1,6 @@
 @echo off
-:: Manter janela sempre aberta
-if not "%1"=="JANELA" (
-    start "ngrok - Controlo de Despacho Diario" cmd /k "%~f0" JANELA
+if not "%1"=="RUN" (
+    start "ngrok - Dashboard Rotas" cmd /k "%~f0" RUN
     exit
 )
 
@@ -15,64 +14,55 @@ echo   Controlo de Despacho Diario - Chicken Palace
 echo =======================================================
 echo.
 
-set NGROK_EXE=
 set NGROK_DIR=%~dp0ngrok-bin
+set TOKEN_FILE=%~dp0.ngrok-token
+set NGROK_EXE=
 
 :: -------------------------------------------------------
-:: 1. PROCURAR NGROK (PATH do sistema ou pasta local)
+:: 1. LOCALIZAR NGROK
 :: -------------------------------------------------------
 echo [1/4] Procurando ngrok...
 
 where ngrok >nul 2>&1
 if not errorlevel 1 (
     set NGROK_EXE=ngrok
-    echo      ngrok encontrado no PATH do sistema.
-    goto VERIFICAR_TOKEN
+    echo      Encontrado no PATH do sistema.
+    goto :CHECK_TOKEN
 )
 
 if exist "%NGROK_DIR%\ngrok.exe" (
-    set NGROK_EXE="%NGROK_DIR%\ngrok.exe"
-    echo      ngrok encontrado em %NGROK_DIR%
-    goto VERIFICAR_TOKEN
+    set NGROK_EXE=%NGROK_DIR%\ngrok.exe
+    echo      Encontrado em ngrok-bin\
+    goto :CHECK_TOKEN
 )
 
 :: -------------------------------------------------------
-:: 2. INSTALAR NGROK
+:: 2. DESCARREGAR NGROK
 :: -------------------------------------------------------
-echo      ngrok nao encontrado. A instalar...
+echo      Nao encontrado. A descarregar...
 echo.
-
-:: Verificar se tem PowerShell para download
-where powershell >nul 2>&1
-if errorlevel 1 (
-    echo  ERRO: PowerShell nao encontrado.
-    echo  Instale o ngrok manualmente em: https://ngrok.com/download
-    pause
-    exit /b 1
-)
 
 if not exist "%NGROK_DIR%" mkdir "%NGROK_DIR%"
 
-echo      A descarregar ngrok para Windows...
-powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip' -OutFile '%NGROK_DIR%\ngrok.zip' -UseBasicParsing}"
+powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip' -OutFile '%NGROK_DIR%\ngrok.zip' -UseBasicParsing"
 
 if not exist "%NGROK_DIR%\ngrok.zip" (
     echo.
     echo  ERRO: Falha ao descarregar ngrok.
-    echo  Verifique a ligacao a internet.
     echo.
-    echo  Alternativa manual:
-    echo   1. Aceda a https://ngrok.com/download
-    echo   2. Descarregue a versao Windows
-    echo   3. Extraia ngrok.exe para esta pasta: %NGROK_DIR%
+    echo  Instale manualmente:
+    echo   1. Va a https://ngrok.com/download
+    echo   2. Descarregue a versao Windows AMD64
+    echo   3. Extraia ngrok.exe para a pasta ngrok-bin\
     echo   4. Execute este ficheiro novamente.
+    echo.
     pause
     exit /b 1
 )
 
-echo      A extrair ngrok...
+echo      A extrair...
 powershell -Command "Expand-Archive -Path '%NGROK_DIR%\ngrok.zip' -DestinationPath '%NGROK_DIR%' -Force"
-del /f /q "%NGROK_DIR%\ngrok.zip"
+del /f /q "%NGROK_DIR%\ngrok.zip" >nul 2>&1
 
 if not exist "%NGROK_DIR%\ngrok.exe" (
     echo  ERRO: Extracao falhou.
@@ -80,95 +70,85 @@ if not exist "%NGROK_DIR%\ngrok.exe" (
     exit /b 1
 )
 
-set NGROK_EXE="%NGROK_DIR%\ngrok.exe"
-echo      ngrok instalado com sucesso!
+set NGROK_EXE=%NGROK_DIR%\ngrok.exe
+echo      ngrok instalado com sucesso.
 
 :: -------------------------------------------------------
-:: 3. VERIFICAR / CONFIGURAR TOKEN
+:: 3. TOKEN DE AUTENTICACAO
 :: -------------------------------------------------------
-:VERIFICAR_TOKEN
+:CHECK_TOKEN
 echo.
-echo [2/4] Verificando autenticacao ngrok...
-
-:: Ler token do ficheiro de configuracao local
-set TOKEN_FILE=%~dp0.ngrok-token
-set NGROK_TOKEN=
+echo [2/4] Verificando token de autenticacao...
 
 if exist "%TOKEN_FILE%" (
-    set /p NGROK_TOKEN=<"%TOKEN_FILE%"
+    echo      Token encontrado. OK.
+    goto :CHECK_SERVER
 )
+
+echo.
+echo  Token nao configurado. Necessario para usar o ngrok.
+echo.
+echo  PASSOS PARA OBTER O TOKEN GRATUITO:
+echo   1. Aceda a: https://ngrok.com/signup
+echo   2. Registe-se com email, Google ou GitHub
+echo   3. Apos login aceda a:
+echo      https://dashboard.ngrok.com/get-started/your-authtoken
+echo   4. Copie o token que aparece na pagina
+echo.
+set /p NGROK_TOKEN=  Cole o token aqui e prima Enter:
 
 if "%NGROK_TOKEN%"=="" (
-    echo.
-    echo  Para usar o ngrok e necessario um token gratuito.
-    echo.
-    echo  COMO OBTER O TOKEN ^(gratis^):
-    echo   1. Aceda a: https://dashboard.ngrok.com/signup
-    echo   2. Registe-se com email ou Google/GitHub
-    echo   3. Apos login, va a: https://dashboard.ngrok.com/get-started/your-authtoken
-    echo   4. Copie o token e cole abaixo
-    echo.
-    set /p NGROK_TOKEN=  Cole o seu token aqui e prima Enter:
-
-    if "!NGROK_TOKEN!"=="" (
-        echo  Token vazio. Cancelando.
-        pause
-        exit /b 1
-    )
-
-    :: Guardar token para proximas execucoes
-    echo !NGROK_TOKEN!>"%TOKEN_FILE%"
-    echo      Token guardado para uso futuro.
+    echo  Token vazio. A cancelar.
+    pause
+    exit /b 1
 )
 
-:: Configurar token no ngrok
-echo      A configurar token...
-%NGROK_EXE% config add-authtoken %NGROK_TOKEN% >nul 2>&1
-if errorlevel 1 (
-    echo  AVISO: Erro ao configurar token. Tentando mesmo assim...
-)
-echo      Token configurado.
+echo %NGROK_TOKEN%>"%TOKEN_FILE%"
+echo      Token guardado em .ngrok-token para uso futuro.
 
 :: -------------------------------------------------------
-:: 4. VERIFICAR SERVIDOR DEV A CORRER
+:: 4. CONFIGURAR TOKEN NO NGROK
 :: -------------------------------------------------------
+:CONFIGURE_TOKEN
+set /p NGROK_TOKEN=<"%TOKEN_FILE%"
+%NGROK_EXE% config add-authtoken %NGROK_TOKEN%
 echo.
-echo [3/4] Verificando servidor local...
 
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:5173' -TimeoutSec 3 -UseBasicParsing; exit 0 } catch { exit 1 }" >nul 2>&1
+:: -------------------------------------------------------
+:: 5. VERIFICAR SERVIDOR LOCAL
+:: -------------------------------------------------------
+:CHECK_SERVER
+echo [3/4] Verificando servidor local em localhost:5173 ...
+
+powershell -Command "try { Invoke-WebRequest -Uri 'http://localhost:5173' -TimeoutSec 3 -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo  AVISO: Servidor local nao detectado em http://localhost:5173
+    echo  AVISO: Servidor nao detectado em http://localhost:5173
+    echo  Execute primeiro o ficheiro instalar-e-arrancar.bat
     echo.
-    echo  Certifique-se que o servidor de desenvolvimento esta a correr.
-    echo  Execute primeiro o ficheiro: instalar-e-arrancar.bat
-    echo.
-    set /p CONTINUAR=  Continuar mesmo assim? (S/N):
-    if /i "!CONTINUAR!" neq "S" (
-        pause
-        exit /b 0
-    )
+    echo  Prima qualquer tecla para tentar abrir o tunel mesmo assim...
+    pause >nul
 ) else (
-    echo      Servidor local detectado. OK.
+    echo      Servidor local activo. OK.
 )
 
 :: -------------------------------------------------------
-:: 5. INICIAR TUNEL NGROK
+:: 6. INICIAR TUNEL
 :: -------------------------------------------------------
 echo.
-echo [4/4] A iniciar tunel ngrok...
+echo [4/4] A abrir tunel para internet...
 echo.
 echo =======================================================
-echo   O URL publico aparece abaixo em "Forwarding"
-echo   Exemplo: https://xxxx-xx-xx.ngrok-free.app
+echo   O URL publico aparece na linha "Forwarding" abaixo.
+echo   Exemplo: https://abcd-1234.ngrok-free.app
 echo.
 echo   Partilhe esse URL para aceder de qualquer lugar.
 echo   Prima Ctrl+C para fechar o tunel.
 echo =======================================================
 echo.
 
-%NGROK_EXE% http 5173 --log=stdout
+%NGROK_EXE% http 5173
 
 echo.
-echo Tunel fechado.
+echo  Tunel encerrado.
 pause
