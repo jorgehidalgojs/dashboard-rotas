@@ -130,9 +130,52 @@ if "%PRECISA_INSTALAR%"=="1" (
 echo.
 
 :: -------------------------------------------------------
-:: 6. ARRANCAR SERVIDOR
+:: 6. GARANTIR allowedHosts NO VITE CONFIG
 :: -------------------------------------------------------
-echo [6/6] A iniciar servidor...
+echo [6/6] A verificar configuracao do servidor...
+
+:: Reescrever vite.config.js garantindo allowedHosts sempre presente
+(
+echo import { defineConfig } from 'vite'
+echo import react from '@vitejs/plugin-react'
+echo import tailwindcss from '@tailwindcss/vite'
+echo.
+echo export default defineConfig^({
+echo   plugins: [react^(^), tailwindcss^(^)],
+echo.
+echo   server: {
+echo     allowedHosts: 'all',
+echo   },
+echo.
+echo   build: {
+echo     chunkSizeWarningLimit: 1000,
+echo     sourcemap: false,
+echo     target: 'es2020',
+echo     rollupOptions: {
+echo       output: {
+echo         manualChunks: {
+echo           'vendor-react': ['react', 'react-dom'],
+echo           'vendor-map': ['leaflet', 'react-leaflet', 'leaflet.markercluster'],
+echo           'vendor-ui': ['framer-motion', '@tanstack/react-virtual', '@tanstack/react-query'],
+echo           'vendor-icons': ['lucide-react'],
+echo         },
+echo       },
+echo     },
+echo   },
+echo.
+echo   optimizeDeps: {
+echo     include: ['leaflet', 'leaflet.markercluster'],
+echo   },
+echo }^)
+) > "%~dp0vite.config.js"
+
+echo      Configuracao OK.
+echo.
+
+:: -------------------------------------------------------
+:: 7. ARRANCAR SERVIDOR
+:: -------------------------------------------------------
+echo [7/7] A iniciar servidor...
 echo.
 echo =======================================================
 echo   Servidor local:  http://localhost:5173
