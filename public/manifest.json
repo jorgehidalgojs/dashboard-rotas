@@ -1,0 +1,25 @@
+{
+  "name": "Centro de Controlo de Rotas · Chicken Palace",
+  "short_name": "CCR Rotas",
+  "description": "Dashboard de monitorização em tempo real de rotas e frotas logísticas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0a84ff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logopalace.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "orientation": "landscape",
+  "categories": ["logistics", "productivity", "business"]
+}
