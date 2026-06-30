@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# Token ngrok (nao subir ao repositorio)
+.ngrok-token
+ngrok-bin/
+
 # Logs
 logs
 *.log
