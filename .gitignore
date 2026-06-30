@@ -17,6 +17,10 @@ dist
 dist-ssr
 *.local
 
+# package-lock tem binarios nativos especificos por plataforma (Mac/Windows/Linux)
+# cada maquina gera o seu proprio apos npm install
+package-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
